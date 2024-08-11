@@ -92,10 +92,12 @@ class Analytics():
         X = filtered_df_ret.drop(columns=indexes)
         y = filtered_df_ret[index]
 
-        ticker_columns = list(X.columns)        
+        # Fitting random forest regressor
+        ticker_columns = list(X.columns)
         rf = RandomForestRegressor(n_estimators=100, random_state=42)
         rf.fit(X, y)
 
+        # Get dataframe with feature importance
         feature_importances = rf.feature_importances_
 
         feature_importances_series = pd.Series(feature_importances, index=ticker_columns)
