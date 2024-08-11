@@ -14,9 +14,9 @@ from analytics import *
 a = Analytics()
 tickers = a.dc.get_tickers()
 
+indexes = ["^GSPC", "^IXIC", "^RUT"]
 default_tickers = ["AAPL", "MSFT", "NVDA", "GOOG", "META", "TSLA", "AMD", "AMZN", "LLY", "JPM"]
 
-ticker_options = [{"label": ticker, "value": ticker} for ticker in tickers]
 index_options = [
     {"label": "S&P 500", "value": "^GSPC"},
     {"label": "Russell 2000", "value": "^RUT"},

@@ -9,11 +9,14 @@ from statsmodels.tsa.stattools import adfuller
 from statsmodels.regression.rolling import RollingOLS
 from matplotlib import pyplot as plt
 from sklearn.linear_model import LinearRegression
+from sklearn.ensemble import RandomForestRegressor
+from sklearn.preprocessing import StandardScaler
 from pykalman import KalmanFilter
 from scipy.stats import zscore
 from data_loader import *
 from scipy.optimize import minimize
 from dash import html
+from copy import deepcopy
 
 start_date_limit, end_date_limit = '1995-01-01', '2024-08-09'
 
@@ -59,9 +62,8 @@ class Analytics():
         """
         Performs regressions of index data against the provided security symbols
         """
-        filtered_df_ret = self.returns_df.loc[:, explain_securities + [index]].dropna()
+        filtered_df_ret = deepcopy(self.returns_df.loc[:, explain_securities + [index]]).dropna()
         X = filtered_df_ret.loc[:, explain_securities]
-        X = sm.add_constant(X)  # Add a constant for the intercept
         y = filtered_df_ret[index]
 
         model = sm.OLS(y, X).fit()
@@ -78,3 +80,30 @@ class Analytics():
         fig = self.generate_scatter_plot(index_actual, index_predicted)
 
         return model, fig
+
+    def get_top_n_explaining_tickers(self, index, indexes):
+        """
+        Fits Lasso and picks top 10 explaining random forest feature importance
+        """
+        filtered_df_ret = deepcopy(self.returns_df).dropna(axis=1, how='all')
+        filtered_df_ret = filtered_df_ret.dropna()
+
+        # Define features and target
+        X = filtered_df_ret.drop(columns=indexes)
+        y = filtered_df_ret[index]
+
+        ticker_columns = list(X.columns)        
+        rf = RandomForestRegressor(n_estimators=100, random_state=42)
+        rf.fit(X, y)
+
+        feature_importances = rf.feature_importances_
+
+        feature_importances_series = pd.Series(feature_importances, index=ticker_columns)
+        top_features = feature_importances_series.nlargest(10)  # Get top 10 features
+    
+        summary_df = pd.DataFrame({
+            'Feature': top_features.index,
+            'Importance': top_features.values
+        })
+
+        return summary_df
