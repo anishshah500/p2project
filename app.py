@@ -1,7 +1,6 @@
 import os
 import sys
 import dash
-import plotly.graph_objs as go
 import flask
 import dash_table as dt
 
@@ -23,9 +22,6 @@ index_options = [
     {"label": "Russell 2000", "value": "^RUT"},
     {"label": "Nasdaq 100", "value": "^IXIC"},
 ]
-
-# a.set_data_df(datetime(2023, 1 ,1).date(), datetime(2024, 1 ,1).date())
-# print(a.perform_regression("^GSPC", default_tickers))
 
 server = flask.Flask(__name__)
 app = dash.Dash(__name__, server= server)
@@ -54,12 +50,15 @@ app.layout = html.Div(
         html.H4('Regression Performance',style={'display':'inline-block','margin-right':20}),
         html.Div(id='out1'),
         html.H4('Regression Coefficients',style={'display':'inline-block','margin-right':20}),
-        html.Div(id='out2')
+        html.Div(id='out2'),
+        html.H4('Regression plot',style={'display':'inline-block','margin-right':20}),
+        dcc.Graph(id="regression-graph")
     ])
 
 @app.callback(
     Output("out1", "children"),
     Output("out2", "children"),
+    Output("regression-graph", "figure"),
     [Input("submit-button", "n_clicks")],
     [
     dash.dependencies.State("index", "value"), 
@@ -77,7 +76,7 @@ def update_dashboard(n_clicks, index, explain_securities, start_date, end_date):
         # Pull data
         a.set_data_df(start_date, end_date)
 
-        model = a.perform_regression(index, explain_securities)
+        model, fig = a.perform_regression(index, explain_securities)
         
         table1 = model.summary2().tables[0]
         table2 = model.summary2().tables[1].reset_index().rename(columns={"index": "Ticker"}).round(3)
@@ -118,9 +117,9 @@ def update_dashboard(n_clicks, index, explain_securities, start_date, end_date):
             sort_action='native'
         )
 
-        return table1_table, table2_table
+        return table1_table, table2_table, fig
 
-    return [], []
+    return [], [], go.Figure()
 
 if __name__ == '__main__':
     app.run_server(debug=True)
