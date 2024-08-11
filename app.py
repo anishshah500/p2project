@@ -52,13 +52,16 @@ app.layout = html.Div(
         html.H4('Regression Coefficients',style={'display':'inline-block','margin-right':20}),
         html.Div(id='out2'),
         html.H4('Regression plot',style={'display':'inline-block','margin-right':20}),
-        dcc.Graph(id="regression-graph")
+        dcc.Graph(id="regression-graph"),
+        html.H4('10 Securities that best explain index(using random forest feature importance)',style={'display':'inline-block','margin-right':20}),
+        html.Div(id='out3')
     ])
 
 @app.callback(
     Output("out1", "children"),
     Output("out2", "children"),
     Output("regression-graph", "figure"),
+    Output("out3", "children"),
     [Input("submit-button", "n_clicks")],
     [
     dash.dependencies.State("index", "value"), 
@@ -80,6 +83,8 @@ def update_dashboard(n_clicks, index, explain_securities, start_date, end_date):
         
         table1 = model.summary2().tables[0]
         table2 = model.summary2().tables[1].reset_index().rename(columns={"index": "Ticker"}).round(3)
+
+        top_10_explain_tickers_df = a.get_top_n_explaining_tickers(index, indexes).round(4)
 
         table1_table = DataTable(
             columns=[{"name": str(i), "id": str(i)} for i in table1.columns],
@@ -117,9 +122,28 @@ def update_dashboard(n_clicks, index, explain_securities, start_date, end_date):
             sort_action='native'
         )
 
-        return table1_table, table2_table, fig
+        top_10_explain_tickers_df_table = DataTable(
+            columns=[{"name": str(i), "id": str(i)} 
+                for i in top_10_explain_tickers_df.columns],
+            data=top_10_explain_tickers_df.to_dict('records'),
+            style_table={'overflowX': 'auto'},
+            style_cell={
+                'textAlign': 'left',
+                'padding': '5px'
+            },
+            style_header={
+                'backgroundColor': 'lightgrey',
+                'fontWeight': 'bold'
+            },
+            page_action='native',
+            page_size=25,
+            filter_action='native',
+            sort_action='native'
+        )
 
-    return [], [], go.Figure()
+        return table1_table, table2_table, fig, top_10_explain_tickers_df_table
+
+    return [], [], go.Figure(), []
 
 if __name__ == '__main__':
     app.run_server(debug=True)

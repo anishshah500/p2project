@@ -85,8 +85,8 @@ class Analytics():
         """
         Fits Lasso and picks top 10 explaining random forest feature importance
         """
-        filtered_df_ret = deepcopy(self.returns_df).dropna(axis=1, how='all')
-        filtered_df_ret = filtered_df_ret.dropna()
+        filtered_df_ret = deepcopy(self.returns_df)
+        filtered_df_ret = filtered_df_ret.iloc[1:].dropna(axis=1)
 
         # Define features and target
         X = filtered_df_ret.drop(columns=indexes)
