@@ -27,79 +27,96 @@ index_options = [
 server = flask.Flask(__name__)
 app = dash.Dash(__name__, server=server, external_stylesheets=[dbc.themes.BOOTSTRAP])
 
+# Custom style for card headers
+card_header_style = {
+    'backgroundColor': '#f8f9fa',
+    'fontWeight': 'bold',
+    'textAlign': 'center',
+    'fontSize': '1.25rem',
+    'padding': '10px'
+}
+
 # App layout
 app.layout = dbc.Container(
     [
+        dbc.Row(dbc.Col(html.H1("Multi-Variate Index Regression"), className="mb-4")),
+
+        dbc.Row(dbc.Col(dbc.Card(
+            dbc.CardBody(
+                [
+                    html.H4('Regression Input Parameters', style=card_header_style),
+                    dbc.Row(
+                        [
+                            dbc.Col(html.H6('Choose Index'), width=3),
+                            dbc.Col(dcc.Dropdown(id="index", options=index_options, value="^GSPC"), width=9)
+                        ],
+                        className="mb-3"
+                    ),
+                    dbc.Row(
+                        [
+                            dbc.Col(html.H6('Select securities to explain daily performance'), width=3),
+                            dbc.Col(dcc.Dropdown(
+                                options=[{"label": ticker, "value": ticker} for ticker in tickers],
+                                value=default_tickers,
+                                id="explain_securities",
+                                multi=True
+                            ), width=9)
+                        ],
+                        className="mb-3"
+                    ),
+                    dbc.Row(
+                        [
+                            dbc.Col(html.H6('Date Range'), width=3),
+                            dbc.Col(dcc.DatePickerRange(id="date-picker", start_date="2023-01-01", end_date="2023-12-31"), width=9)
+                        ],
+                        className="mb-3"
+                    ),
+                    dbc.Row(dbc.Col(dbc.Button("Submit", id="submit-button", n_clicks=0, color="primary", className="w-100"))),
+                ]
+            ),
+            className="mb-4"
+        ))),
+
+        dbc.Row(dbc.Col(dbc.Card(
+            dbc.CardBody(
+                [
+                    html.H4('Regression Performance', style=card_header_style),
+                    html.Div(id='out1')
+                ]
+            ),
+            className="mb-4"
+        ))),
+
+        dbc.Row(dbc.Col(dbc.Card(
+            dbc.CardBody(
+                [
+                    html.H4('Regression Coefficients', style=card_header_style),
+                    html.Div(id='out2')
+                ]
+            ),
+            className="mb-4"
+        ))),
+
         dbc.Row(
-            dbc.Col(html.H1("Multi-Variate Index Regression"), className="mb-4")
-        ),
-        dbc.Row(
-            dbc.Col(
-                dbc.Card(
+            [
+                dbc.Col(dbc.Card(
                     dbc.CardBody(
                         [
-                            dbc.Row(
-                                [
-                                    dbc.Col(html.H4('Choose Index'), width=2),
-                                    dbc.Col(
-                                        dcc.Dropdown(id="index", options=index_options, value="^GSPC"),
-                                        width=10
-                                    )
-                                ],
-                                className="mb-3"
-                            ),
-                            dbc.Row(
-                                [
-                                    dbc.Col(html.H4('Select securities to explain daily performance'), width=2),
-                                    dbc.Col(
-                                        dcc.Dropdown(
-                                            tickers,
-                                            default_tickers,
-                                            id="explain_securities",
-                                            multi=True
-                                        ),
-                                        width=10
-                                    )
-                                ],
-                                className="mb-3"
-                            ),
-                            dbc.Row(
-                                [
-                                    dbc.Col(html.H4('Date Range'), width=2),
-                                    dbc.Col(
-                                        dcc.DatePickerRange(id="date-picker", start_date="2023-01-01", end_date="2023-12-31"),
-                                        width=10
-                                    )
-                                ],
-                                className="mb-3"
-                            ),
-                            dbc.Row(
-                                dbc.Col(
-                                    dbc.Button("Submit", id="submit-button", n_clicks=0, color="primary"),
-                                    className="d-flex justify-content-end"
-                                )
-                            )
+                            html.H4('Regression Plot', style=card_header_style),
+                            dcc.Graph(id="regression-graph")
                         ]
                     )
-                ),
-                className="mb-4"
-            )
-        ),
-        dbc.Row(
-            dbc.Col(
-                html.Div(
-                    [
-                        html.H4('Regression Performance', className="mt-3"),
-                        html.Div(id='out1'),
-                        html.H4('Regression Coefficients', className="mt-3"),
-                        html.Div(id='out2'),
-                        html.H4('Regression plot', className="mt-3"),
-                        dcc.Graph(id="regression-graph"),
-                        html.H4('10 Securities that best explain index(using random forest feature importance)', className="mt-3"),
-                        html.Div(id='out3')
-                    ]
-                )
-            )
+                ), width=6),
+                dbc.Col(dbc.Card(
+                    dbc.CardBody(
+                        [
+                            html.H4('Top 10 Securities', style=card_header_style),
+                            html.Div(id='out3')
+                        ]
+                    )
+                ), width=6)
+            ],
+            className="mb-4"
         )
     ],
     fluid=True
@@ -112,14 +129,13 @@ app.layout = dbc.Container(
     Output("out3", "children"),
     [Input("submit-button", "n_clicks")],
     [
-        State("index", "value"), 
-        State("explain_securities", "value"), 
-        State("date-picker", "start_date"), 
+        State("index", "value"),
+        State("explain_securities", "value"),
+        State("date-picker", "start_date"),
         State("date-picker", "end_date")
-    ] 
+    ]
 )
 def update_dashboard(n_clicks, index, explain_securities, start_date, end_date):
-    # Index explain using constituents app
     if n_clicks > 0:
         start_date = datetime.strptime(start_date, '%Y-%m-%d').date()
         end_date = datetime.strptime(end_date, '%Y-%m-%d').date()
@@ -171,8 +187,8 @@ def update_dashboard(n_clicks, index, explain_securities, start_date, end_date):
         )
 
         top_10_explain_tickers_df_table = DataTable(
-            columns=[{"name": str(i), "id": str(i)} 
-                for i in top_10_explain_tickers_df.columns],
+            columns=[{"name": str(i), "id": str(i)}
+                     for i in top_10_explain_tickers_df.columns],
             data=top_10_explain_tickers_df.to_dict('records'),
             style_table={'overflowX': 'auto'},
             style_cell={
@@ -195,3 +211,4 @@ def update_dashboard(n_clicks, index, explain_securities, start_date, end_date):
 
 if __name__ == '__main__':
     app.run_server(debug=True)
+    
