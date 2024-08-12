@@ -4,7 +4,8 @@ import dash
 import flask
 import dash_table as dt
 
-from dash import dcc, Input, Output, State
+from dash import dcc, html, Input, Output, State
+import dash_bootstrap_components as dbc
 from dash_table import DataTable
 
 sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
@@ -24,38 +25,85 @@ index_options = [
 ]
 
 server = flask.Flask(__name__)
-app = dash.Dash(__name__, server= server)
-
+app = dash.Dash(__name__, server=server, external_stylesheets=[dbc.themes.BOOTSTRAP])
 
 # App layout
-app.layout = html.Div(
+app.layout = dbc.Container(
     [
-        html.H1("Multi-Variate Index Regression"),
-        html.Div(id='input-section', children = 
-                [
-                    html.H4('Choose Index',style={'display':'inline-block','margin-right':20}),
-                    dcc.Dropdown(id="index", options=index_options, value="^GSPC"),
-                    html.H4('Select securities to explain daily performance',style={'display':'inline-block','margin-right':20}),
-                    dcc.Dropdown(
-                        tickers,
-                        default_tickers,
-                        id="explain_securities",
-                        multi=True
-                    ),
-                    html.H4('Date Range',style={'display':'inline-block','margin-right':20}),
-                    dcc.DatePickerRange(id="date-picker", start_date="2023-01-01", end_date="2023-12-31"),
-                    html.Br(),
-                    html.Button(id="submit-button", n_clicks=0, children="Submit")
-                ]),
-        html.H4('Regression Performance',style={'display':'inline-block','margin-right':20}),
-        html.Div(id='out1'),
-        html.H4('Regression Coefficients',style={'display':'inline-block','margin-right':20}),
-        html.Div(id='out2'),
-        html.H4('Regression plot',style={'display':'inline-block','margin-right':20}),
-        dcc.Graph(id="regression-graph"),
-        html.H4('10 Securities that best explain index(using random forest feature importance)',style={'display':'inline-block','margin-right':20}),
-        html.Div(id='out3')
-    ])
+        dbc.Row(
+            dbc.Col(html.H1("Multi-Variate Index Regression"), className="mb-4")
+        ),
+        dbc.Row(
+            dbc.Col(
+                dbc.Card(
+                    dbc.CardBody(
+                        [
+                            dbc.Row(
+                                [
+                                    dbc.Col(html.H4('Choose Index'), width=2),
+                                    dbc.Col(
+                                        dcc.Dropdown(id="index", options=index_options, value="^GSPC"),
+                                        width=10
+                                    )
+                                ],
+                                className="mb-3"
+                            ),
+                            dbc.Row(
+                                [
+                                    dbc.Col(html.H4('Select securities to explain daily performance'), width=2),
+                                    dbc.Col(
+                                        dcc.Dropdown(
+                                            tickers,
+                                            default_tickers,
+                                            id="explain_securities",
+                                            multi=True
+                                        ),
+                                        width=10
+                                    )
+                                ],
+                                className="mb-3"
+                            ),
+                            dbc.Row(
+                                [
+                                    dbc.Col(html.H4('Date Range'), width=2),
+                                    dbc.Col(
+                                        dcc.DatePickerRange(id="date-picker", start_date="2023-01-01", end_date="2023-12-31"),
+                                        width=10
+                                    )
+                                ],
+                                className="mb-3"
+                            ),
+                            dbc.Row(
+                                dbc.Col(
+                                    dbc.Button("Submit", id="submit-button", n_clicks=0, color="primary"),
+                                    className="d-flex justify-content-end"
+                                )
+                            )
+                        ]
+                    )
+                ),
+                className="mb-4"
+            )
+        ),
+        dbc.Row(
+            dbc.Col(
+                html.Div(
+                    [
+                        html.H4('Regression Performance', className="mt-3"),
+                        html.Div(id='out1'),
+                        html.H4('Regression Coefficients', className="mt-3"),
+                        html.Div(id='out2'),
+                        html.H4('Regression plot', className="mt-3"),
+                        dcc.Graph(id="regression-graph"),
+                        html.H4('10 Securities that best explain index(using random forest feature importance)', className="mt-3"),
+                        html.Div(id='out3')
+                    ]
+                )
+            )
+        )
+    ],
+    fluid=True
+)
 
 @app.callback(
     Output("out1", "children"),
@@ -64,14 +112,14 @@ app.layout = html.Div(
     Output("out3", "children"),
     [Input("submit-button", "n_clicks")],
     [
-    dash.dependencies.State("index", "value"), 
-    dash.dependencies.State("explain_securities", "value"), 
-    dash.dependencies.State("date-picker", "start_date"), 
-    dash.dependencies.State("date-picker", "end_date")
+        State("index", "value"), 
+        State("explain_securities", "value"), 
+        State("date-picker", "start_date"), 
+        State("date-picker", "end_date")
     ] 
 )
 def update_dashboard(n_clicks, index, explain_securities, start_date, end_date):
-	# Index explain using constituents app
+    # Index explain using constituents app
     if n_clicks > 0:
         start_date = datetime.strptime(start_date, '%Y-%m-%d').date()
         end_date = datetime.strptime(end_date, '%Y-%m-%d').date()
